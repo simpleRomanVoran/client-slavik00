@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Banana's Accounts</title>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        #userData { display: none; }
+    </style>
+</head>
+<body>
+    <h1>Клиент API</h1>
+    <div id="auth">
+        <h2>Регистрация</h2>
+        <input type="text" id="regUsername" placeholder="Логин">
+        <input type="password" id="regPassword" placeholder="Пароль">
+        <button onclick="register()">Зарегистрироваться</button>
+
+        <h2>Вход</h2>
+        <input type="text" id="loginUsername" placeholder="Логин">
+        <input type="password" id="loginPassword" placeholder="Пароль">
+        <button onclick="login()">Войти</button>
+    </div>
+
+    <div id="userData">
+        <h2>Данные пользователя</h2>
+        <textarea id="dataField" rows="5" cols="30"></textarea>
+        <button onclick="updateData()">Сохранить</button>
+        <button onclick="logout()">Выйти</button>
+    </div>
+
+    <script>
+        const API_URL = 'http://api.slavik00.ru/api';
+        let token = localStorage.getItem('token');
+
+        function register() {
+            const username = document.getElementById('regUsername').value;
+            const password = document.getElementById('regPassword').value;
+            
+            fetch(`${API_URL}/register`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            })
+            .then(res => res.json())
+            .then(data => alert(data.message))
+            .catch(console.error);
+        }
+
+        function login() {
+            const username = document.getElementById('loginUsername').value;
+            const password = document.getElementById('loginPassword').value;
+            
+            fetch(`${API_URL}/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.token) {
+                    localStorage.setItem('token', data.token);
+                    token = data.token;
+                    loadUserData();
+                } else {
+                    alert(data.message);
+                }
+            })
+            .catch(console.error);
+        }
+
+        function loadUserData() {
+            if (!token) return;
+            
+            fetch(`${API_URL}/user/data`, {
+                headers: { 'Authorization': token }
+            })
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('dataField').value = data.data;
+                document.getElementById('auth').style.display = 'none';
+                document.getElementById('userData').style.display = 'block';
+            })
+            .catch(console.error);
+        }
+
+        function updateData() {
+            const data = JSON.stringify(document.getElementById('dataField').value);
+            
+            fetch(`${API_URL}/user/data`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': token
+                },
+                body: JSON.stringify({ data: JSON.parse(data) })
+            })
+            .then(res => res.json())
+            .then(data => alert(data.message))
+            .catch(console.error);
+        }
+
+        function logout() {
+            localStorage.removeItem('token');
+            token = null;
+            document.getElementById('auth').style.display = 'block';
+            document.getElementById('userData').style.display = 'none';
+        }
+
+        if (token) {
+            loadUserData();
+        }
+    </script>
+</body>
+</html>
